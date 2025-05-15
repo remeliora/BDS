@@ -1,86 +1,125 @@
-from collections import Counter
 import re
-from time import sleep
+from collections import Counter
 
+import matplotlib.pyplot as plt
 import requests
 from bs4 import BeautifulSoup
-import matplotlib.pyplot as plt
+
+RAW_URL = (
+    "https://raw.githubusercontent.com/"
+    "remeliora/BDS/master/TestData/books.html"
+)
+DELAY_SECONDS = 30
+OUTPUT_CSV = "oreilly_books.csv"
 
 
 def is_video(td):
-    """Check if it's a video by looking for pricelabel"""
-    pricelabels = td('span', 'pricelabel')
-    return (len(pricelabels) == 1 and
-            pricelabels[0].text.strip().startswith("Video"))
+    """
+    True, если внутри td ровно один <span class="pricelabel">,
+    и его текст начинается с 'Video'
+    """
+    pricelabels = td.find_all('span', class_='pricelabel')
+    return len(pricelabels) == 1 and pricelabels[0].text.strip().startswith("Video")
 
 
 def book_info(td):
-    """Extract book details from td tag"""
-    title = td.find("div", "thumbheader").a.text
-    by_author = td.find('div', 'AuthorName').text
-    authors = [x.strip() for x in re.sub("^By ", "", by_author).split(",")]
-    isbn_link = td.find("div", "thumbheader").a.get("href")
-    isbn = re.match("/product/(.*)\.do", isbn_link).groups()[0]
-    date = td.find("span", "directorydate").text.strip()
+    """
+    Из td<class="thumbtext"> вытаскивает dict с полями:
+      - title  (название)
+      - authors (список строк; если не найдено — пустой список)
+      - isbn   (если в href встречается /product/XXX.do)
+      - date   (текст из <span class="directorydate">)
+      - price  (текст из <span class="price">)
+    """
+    # название
+    title_tag = td.find("div", class_="thumbheader").find("a")
+    title = title_tag.text.strip() if title_tag else ""
+
+    # автора(ов)
+    author_div = td.find("div", class_="AuthorName")
+    if author_div:
+        # Убираем внешнее "By " и делим по запятым
+        authors = [x.strip() for x in re.sub(r"^By\s+", "",
+                                             author_div.text).split(",")]
+    else:
+        authors = []
+
+    # ISBN из ссылки вида "/product/978xxxxx.do"
+    href = title_tag.get("href", "") if title_tag else ""
+    m = re.match(r"/product/(.*)\.do", href)
+    isbn = m.group(1) if m else ""
+
+    # дата и цена
+    date_tag = td.find("span", class_="directorydate")
+    date = date_tag.text.strip() if date_tag else ""
+    price_tag = td.find("span", class_="price")
+    price = price_tag.text.strip() if price_tag else ""
 
     return {
         "title": title,
         "authors": authors,
         "isbn": isbn,
-        "date": date
+        "date": date,
+        "price": price
     }
 
 
-def scrape(num_pages=2):
-    """Scrape book data from O'Reilly website"""
-    base_url = "https://shop.oreilly.com/category/browse-subjects/" + \
-               "data.do?sortby=publicationDate&page="
-
-    books = []
-
-    for page_num in range(1, num_pages + 1):
-        print("Processing page", page_num)
-        try:
-            url = base_url + str(page_num)
-            soup = BeautifulSoup(requests.get(url).text, 'html.parser')
-
-            for td in soup('td', 'thumbtext'):
-                if not is_video(td):
-                    books.append(book_info(td))
-
-            sleep(1)  # Respectful delay between requests
-
-        except Exception as e:
-            print(f"Error processing page {page_num}: {e}")
-            continue
-
-    return books
-
-
 def get_year(book):
-    """Extract year from date string"""
-    return int(book["date"].split()[1])
+    """
+    Из строки вида 'April 2023' возвращает 2023 (int).
+    """
+    parts = book["date"].split()
+    try:
+        return int(parts[-1])
+    except:
+        return None
 
 
-def plot_years(plt, books):
-    """Plot book counts by year"""
-    year_counts = Counter(get_year(book) for book in books)
-    years = sorted(year_counts)
-    book_counts = [year_counts[year] for year in years]
+def main():
+    # 1) Скачиваем и парсим
+    html = requests.get(RAW_URL).text
+    soup = BeautifulSoup(html, 'html5lib')
 
-    plt.bar(years, book_counts)
-    plt.xlabel("Year")
-    plt.ylabel("# of Data Books")
-    plt.title("Data Books Published by Year")
-    plt.show()
+    # 2) Находим все карточки
+    tds = soup.find_all('td', class_='thumbtext')
+    print(f"Всего <td class='thumbtext'> на странице: {len(tds)}")
+
+    # 3) Фильтруем видео и собираем книги
+    books = []
+    for td in tds:
+        if not is_video(td):
+            books.append(book_info(td))
+    print(f"Книг (Video отфильтрованы): {len(books)}")
+
+    # 4) Сохраняем в CSV
+    import csv
+    with open(OUTPUT_CSV, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f,
+                                fieldnames=["title", "authors", "isbn", "date", "price"])
+        writer.writeheader()
+        for bk in books:
+            # authors — список, в CSV склеим через ';'
+            bk_row = bk.copy()
+            bk_row["authors"] = ";".join(bk_row["authors"])
+            writer.writerow(bk_row)
+    print(f"Результат записан в {OUTPUT_CSV}")
+
+    # 5) Строим график числа книг по годам
+    years = [get_year(bk) for bk in books if get_year(bk) is not None]
+    year_counts = Counter(years)
+
+    xs = sorted(year_counts)
+    ys = [year_counts[x] for x in xs]
+
+    plt.plot(xs, ys)
+    plt.xlabel("Год")
+    plt.ylabel("Число книг")
+    plt.title("Публикации книг по данным — по годам")
+    plt.grid(True)
+    # plt.show()
+    plt.savefig("График.png", dpi=150)
+    print("График сохранён в График.png")
 
 
 if __name__ == "__main__":
-    # Main execution
-    books_data = scrape(num_pages=2)
-    print(f"Collected data on {len(books_data)} books")
-
-    if books_data:
-        plot_years(plt, books_data)
-    else:
-        print("No book data was collected")
+    main()
