@@ -1,0 +1,5 @@
+apple 123
+banana
+cherry 45
+date
+eggplant 678

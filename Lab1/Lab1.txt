@@ -1,0 +1,124 @@
+Этот код представляет собой пример анализа данных о социальных связях, интересах и зарплатах группы людей
+
+1. Данные о пользователях и дружбе
+```
+users = [
+    {"id": 0, "name": "Hero"},
+    {"id": 1, "name": "Dunn"},
+    # ... остальные пользователи
+]
+```
+Создаётся список пользователей с их ID и именами.
+
+```
+friendship_pairs = [(0, 1), (0, 2), (1, 2), ...]
+```
+Задаются пары друзей в виде кортежей (ID пользователя, ID его друга).
+
+2. Построение словаря друзей
+```
+friendships = {user["id"]: [] for user in users}
+for i, j in friendship_pairs:
+    friendships[i].append(j)
+    friendships[j].append(i)
+```
+Создаётся словарь, где ключ - ID пользователя, а значение - список ID его друзей.
+
+3. Анализ дружеских связей
+```
+def number_of_friends(user):
+    return len(friendships[user["id"])
+
+total_connections = sum(number_of_friends(user) for user in users)
+avg_connections = total_connections / len(users)
+```
+Вычисляется общее количество дружеских связей и среднее количество друзей на пользователя.
+
+```
+num_friends_by_id = [(user["id"], number_of_friends(user)) for user in users]
+num_friends_by_id.sort(key=lambda x: x[1], reverse=True)
+```
+Создаётся и сортируется по убыванию список кортежей (ID пользователя, количество друзей).
+
+4. Анализ друзей друзей (FOAF)
+```
+def friends_of_friends(user):
+    return Counter(
+        foaf_id
+        for friend_id in friendships[user["id"]]
+        for foaf_id in friendships[friend_id]
+        if foaf_id != user["id"] and foaf_id not in friendships[user["id"]]
+    )
+```
+Функция возвращает Counter (счётчик) общих друзей, исключая уже существующих друзей и самого пользователя.
+
+5. Анализ интересов
+```
+interests = [
+    (0, "Hadoop"), (0, "Big Data"),
+    # ... остальные интересы
+]
+
+def data_scientists_who_like(target_interest):
+    return [user_id for user_id, interest in interests if interest == target_interest]
+```
+Список интересов пользователей и функция для поиска пользователей по интересу.
+
+```
+user_ids_by_interest = defaultdict(list)
+interests_by_user_id = defaultdict(list)
+
+Заполнение этих словарей
+```
+Создаются два словаря для быстрого поиска:
+- по интересу → список пользователей
+- по пользователю → список его интересов
+
+```
+def most_common_interests_with(user):
+    return Counter(
+        interested_user_id
+        for interest in interests_by_user_id[user["id"]]
+        for interested_user_id in user_ids_by_interest[interest]
+        if interested_user_id != user["id"]
+    )
+```
+Функция находит пользователей с общими интересами.
+
+6. Анализ зарплат и стажа
+```
+salaries_and_tenures = [(83000, 8.7), (88000, 8.1), ...]
+
+salary_by_tenure = defaultdict(list)
+average_salary_by_tenure = {}
+```
+Анализируется зависимость зарплаты от стажа работы.
+
+```
+def tenure_bucket(tenure):
+    if tenure < 2: return "less than two"
+    elif tenure < 5: return "between two and five"
+    else: return "more than five"
+
+average_salary_by_bucket = {}
+```
+Зарплаты группируются по диапазонам стажа для более осмысленного анализа.
+
+7. Предсказание оплаты труда
+```
+def predict_paid_or_unpaid(years_experience):
+    if years_experience < 3.0: return "paid"
+    elif years_experience < 8.5: return "unpaid"
+    else: return "paid"
+```
+Простая модель предсказания, будет ли работа оплачиваемой.
+
+8. Анализ популярности слов в интересах
+```
+words_and_counts = Counter(
+    word
+    for user, interest in interests
+    for word in interest.lower().split()
+)
+```
+Подсчитывается частота употребления отдельных слов в списке интересов.

@@ -1,0 +1,5 @@
+user1@gmail.com
+user2@yahoo.com
+user3@gmail.com
+invalid-email
+admin@datasciencester.com
