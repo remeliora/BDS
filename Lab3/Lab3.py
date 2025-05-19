@@ -12,7 +12,7 @@ plt.title("Номинальный ВВП")
 plt.ylabel("Млрд $")
 # plt.show()
 
-plt.savefig('im/1_Номинальный_ВВП.png')
+plt.savefig('1_Номинальный_ВВП.png')
 plt.gca().clear()
 
 """
@@ -30,7 +30,7 @@ plt.ylabel("Количество наград")
 plt.xticks(range(len(movies)), movies)
 # plt.show()
 
-plt.savefig('im/2_Фильмы.png')
+plt.savefig('2_Фильмы.png')
 plt.gca().clear()
 
 from collections import Counter
@@ -52,7 +52,7 @@ plt.ylabel("Число студентов")
 plt.title("Распределение оценок за экзамен №1")
 # plt.show()
 
-plt.savefig('im/3_Оценки.png')
+plt.savefig('3_Оценки.png')
 plt.gca().clear()
 
 mentions = [500, 505]
@@ -68,7 +68,7 @@ plt.axis([2016.5, 2018.5, 499, 506])
 plt.title("Какой 'огромный' прирост!")
 # plt.show()
 
-plt.savefig('im/4_Вводящая_в_заблуждение_ось_y.png')
+plt.savefig('4_Вводящая_в_заблуждение_ось_y.png')
 plt.gca().clear()
 
 plt.bar(years, mentions, 0.8)
@@ -80,7 +80,7 @@ plt.axis([2016.5, 2018.5, 0, 550])
 plt.title("Больше не такой огромный")
 # plt.show()
 
-plt.savefig('im/5_Не_вводящая_в_заблуждение_ось_y.png')
+plt.savefig('5_Не_вводящая_в_заблуждение_ось_y.png')
 plt.gca().clear()
 
 """
@@ -102,7 +102,7 @@ plt.xticks([])
 plt.title("Компромисс между смещением и дисперсией")
 # plt.show()
 
-plt.savefig('im/6_Линейная_диаграмма.png')
+plt.savefig('6_Линейная_диаграмма.png')
 plt.gca().clear()
 
 """
@@ -126,7 +126,7 @@ plt.xlabel("Число друзей")
 plt.ylabel("Время, проводимое на сайте ежедневно, мин")
 # plt.show()
 
-plt.savefig('im/7_Диаграмма_рассеяния.png')
+plt.savefig('7_Диаграмма_рассеяния.png')
 plt.gca().clear()
 
 test_1_grades = [99, 90, 85, 97, 80]
@@ -138,7 +138,7 @@ plt.xlabel("Оценки за тест №1")
 plt.ylabel("Оценки за тест №2")
 # plt.show()
 
-plt.savefig('im/8_Несопоставимые_оси_диаграммы_рассеяния.png')
+plt.savefig('8_Несопоставимые_оси_диаграммы_рассеяния.png')
 plt.gca().clear()
 
 test_1_grades = [99, 90, 85, 97, 80]
@@ -150,5 +150,5 @@ plt.xlabel("Оценки за тест №1")
 plt.ylabel("Оценки за тест №2")
 # plt.show()
 
-plt.savefig('im/9_Сопоставимые_оси_диаграммы_рассеяния.png')
+plt.savefig('9_Сопоставимые_оси_диаграммы_рассеяния.png')
 plt.gca().clear()
