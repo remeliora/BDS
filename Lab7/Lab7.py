@@ -1,211 +1,536 @@
 import math
-import random
 from collections import Counter
-from typing import List, Tuple, Callable
+from typing import List, Dict
 
 import matplotlib.pyplot as plt
 
 
-# Вспомогательные функции
-def shape(matrix: List[List[float]]) -> Tuple[int, int]:
-    """Возвращает (число строк, число столбцов) матрицы"""
-    num_rows = len(matrix)
-    num_cols = len(matrix[0]) if matrix else 0
-    return num_rows, num_cols
-
-
-def get_column(matrix: List[List[float]], j: int) -> List[float]:
-    """Возвращает j-й столбец матрицы"""
-    return [row[j] for row in matrix]
-
-
-def make_matrix(num_rows: int, num_cols: int, entry_fn: Callable[[int, int], float]) -> List[List[float]]:
-    """Создает матрицу num_rows x num_cols, где элемент (i,j) - entry_fn(i,j)"""
-    return [[entry_fn(i, j) for j in range(num_cols)] for i in range(num_rows)]
-
-
-def inverse_normal_cdf(p: float, mu: float = 0, sigma: float = 1, tolerance: float = 0.00001) -> float:
-    """Аппроксимация обратной функции нормального распределения"""
-    if mu != 0 or sigma != 1:
-        return mu + sigma * inverse_normal_cdf(p, tolerance=tolerance)
-
-    low_z, low_p = -10.0, 0
-    hi_z, hi_p = 10.0, 1
-
-    while hi_z - low_z > tolerance:
-        mid_z = (low_z + hi_z) / 2
-        mid_p = normal_cdf(mid_z)
-        if mid_p < p:
-            low_z, low_p = mid_z, mid_p
-        elif mid_p > p:
-            hi_z, hi_p = mid_z, mid_p
-        else:
-            break
-    return mid_z
-
-
-def normal_cdf(x: float, mu: float = 0, sigma: float = 1) -> float:
-    """Кумулятивная функция распределения для нормального распределения"""
-    return (1 + math.erf((x - mu) / math.sqrt(2) / sigma)) / 2
-
-
-def mean(xs: List[float]) -> float:
-    """Среднее значение"""
-    return sum(xs) / len(xs)
-
-
-def de_mean(xs: List[float]) -> List[float]:
-    """Транслировать xs путем вычитания его среднего (результат имеет среднее 0)"""
-    x_bar = mean(xs)
-    return [x - x_bar for x in xs]
-
-
-def dot(v: List[float], w: List[float]) -> float:
-    """Скалярное произведение"""
-    return sum(v_i * w_i for v_i, w_i in zip(v, w))
-
-
-def covariance(xs: List[float], ys: List[float]) -> float:
-    """Ковариация"""
-    return dot(de_mean(xs), de_mean(ys)) / (len(xs) - 1)
-
-
-def standard_deviation(xs: List[float]) -> float:
-    """Стандартное отклонение"""
-    return math.sqrt(covariance(xs, xs))
-
-
-def correlation(xs: List[float], ys: List[float]) -> float:
-    """Корреляция Пирсона"""
-    stdev_x = standard_deviation(xs)
-    stdev_y = standard_deviation(ys)
-    if stdev_x > 0 and stdev_y > 0:
-        return covariance(xs, ys) / stdev_x / stdev_y
-    else:
-        return 0
-
-
-def random_normal() -> float:
-    """Возвращает случайную выборку из стандартного нормального распределения"""
-    return inverse_normal_cdf(random.random())
-
-
-# Функции для одномерных данных
 def bucketize(point: float, bucket_size: float) -> float:
-    """Округлить точку до следующего наименьшего кратного размера интервала bucket_size"""
     return bucket_size * math.floor(point / bucket_size)
 
 
-def make_histogram(points: List[float], bucket_size: float) -> Counter:
-    """Сгруппировать точки и подсчитать количество в интервале"""
+def make_histogram(points: List[float], bucket_size: float) -> Dict[float, int]:
     return Counter(bucketize(point, bucket_size) for point in points)
 
 
-def plot_histogram(points: List[float], bucket_size: float, title: str = "", filename: str = None) -> None:
-    """Изобразить гистограмму и сохранить в файл"""
+def plot_histogram(points: List[float], bucket_size: float, title: str = ""):
     histogram = make_histogram(points, bucket_size)
     plt.bar(histogram.keys(), histogram.values(), width=bucket_size)
     plt.title(title)
-    if filename:
-        plt.savefig(filename)
-        plt.close()
-    else:
-        plt.show()
 
 
-# Функции для двумерных данных
-def scatter_plot(xs: List[float], ys1: List[float], ys2: List[float], title: str = "", filename: str = None) -> None:
-    """Точечная диаграмма для двух наборов данных"""
-    plt.scatter(xs, ys1, marker='.', color='black', label='ys1')
-    plt.scatter(xs, ys2, marker='.', color='gray', label='ys2')
-    plt.xlabel('xs')
-    plt.ylabel('ys')
-    plt.legend(loc=9)
-    plt.title(title)
-    if filename:
-        plt.savefig(filename)
-        plt.close()
-    else:
-        plt.show()
+import random
+from Probability import inverse_normal_cdf
 
 
-# Функции для многомерных данных
-def correlation_matrix(data: List[List[float]]) -> List[List[float]]:
-    """Возвращает матрицу num_columns x num_columns, где запись
-    в ячейке (i, j) - это корреляция между столбцами i и j данных"""
-    _, num_columns = shape(data)
-
-    def matrix_entry(i: int, j: int) -> float:
-        return correlation(get_column(data, i), get_column(data, j))
-
-    return make_matrix(num_columns, num_columns, matrix_entry)
+def random_normal() -> float:
+    return inverse_normal_cdf(random.random())
 
 
-def plot_scatter_matrix(data: List[List[float]], filename: str = None) -> None:
-    """Точечная матрица для многомерных данных"""
-    _, num_columns = shape(data)
-    fig, ax = plt.subplots(num_columns, num_columns, figsize=(10, 10))
+xs = [random_normal() for _ in range(1000)]
+ys1 = [x + random_normal() / 2 for x in xs]
+ys2 = [-x + random_normal() / 2 for x in xs]
 
-    for i in range(num_columns):
-        for j in range(num_columns):
+plt.scatter(xs, ys1, marker='.', color='black', label='ys1')
+plt.scatter(xs, ys2, marker='.', color='gray', label='ys2')
+plt.xlabel('xs')
+plt.ylabel('ys')
+plt.legend(loc=9)
+plt.title("Очень разное совместное распределение")
+# plt.show()
+
+
+plt.savefig('3_Очень_разное_совместное_распределение.png')
+plt.gca().clear()
+
+from Statistics import correlation
+
+from Linear_algebra import Matrix, Vector, make_matrix
+
+
+def correlation_matrix(data: List[Vector]) -> Matrix:
+    def correlation_ij(i: int, j: int) -> float:
+        return correlation(data[i], data[j])
+
+    return make_matrix(len(data), len(data), correlation_ij)
+
+
+vectors = [xs, ys1, ys2]
+
+import datetime
+
+stock_price = {'closing_price': 102.06,
+               'date': datetime.date(2014, 8, 29),
+               'symbol': 'AAPL'}
+
+# oops, typo
+stock_price['cosing_price'] = 103.06
+
+prices: Dict[datetime.date, float] = {}
+
+from typing import NamedTuple
+import datetime
+
+
+class StockPrice(NamedTuple):
+    symbol: str
+    date: datetime.date
+    closing_price: float
+
+    def is_high_tech(self) -> bool:
+        return self.symbol in ['MSFT', 'GOOG', 'FB', 'AMZN', 'AAPL']
+
+
+price = StockPrice('MSFT', datetime.date(2018, 12, 14), 106.03)
+
+from typing import List
+import datetime
+from collections import namedtuple
+
+# Определяем namedtuple для хранения данных об акциях
+StockPrice = namedtuple('StockPrice', ['symbol', 'date', 'closing_price'])
+
+
+def parse_row(row: List[str]) -> StockPrice:
+    symbol, date_str, closing_price = row
+    return StockPrice(symbol=symbol,
+                      date=parse(date_str).date(),
+                      closing_price=float(closing_price))
+
+
+from typing import Optional
+import re
+
+
+def try_parse_row(row: List[str]) -> Optional[StockPrice]:
+    symbol, date_, closing_price_ = row
+
+    # Stock symbol should be all capital letters
+    if not re.match(r"^[A-Z]+$", symbol):
+        return None
+
+    try:
+        date = parse(date_).date()
+    except ValueError:
+        return None
+
+    try:
+        closing_price = float(closing_price_)
+    except ValueError:
+        return None
+
+    return StockPrice(symbol, date, closing_price)
+
+
+from dateutil.parser import parse
+import csv
+
+with open("stocks.csv", "r") as f:
+    reader = csv.DictReader(f)
+    rows = [[row['Symbol'], row['Date'], row['Close']]
+            for row in reader]
+
+maybe_data = [try_parse_row(row) for row in rows]
+
+data = [sp for sp in maybe_data if sp is not None]
+
+max_aapl_price = max(stock_price.closing_price
+                     for stock_price in data
+                     if stock_price.symbol == "AAPL")
+
+from collections import defaultdict
+
+max_prices: Dict[str, float] = defaultdict(lambda: float('-inf'))
+
+for sp in data:
+    symbol, closing_price = sp.symbol, sp.closing_price
+    if closing_price > max_prices[symbol]:
+        max_prices[symbol] = closing_price
+
+from typing import List
+from collections import defaultdict
+
+prices: Dict[str, List[StockPrice]] = defaultdict(list)
+
+for sp in data:
+    prices[sp.symbol].append(sp)
+
+prices = {symbol: sorted(symbol_prices)
+          for symbol, symbol_prices in prices.items()}
+
+
+def pct_change(yesterday: StockPrice, today: StockPrice) -> float:
+    return today.closing_price / yesterday.closing_price - 1
+
+
+class DailyChange(NamedTuple):
+    symbol: str
+    date: datetime.date
+    pct_change: float
+
+
+def day_over_day_changes(prices: List[StockPrice]) -> List[DailyChange]:
+    return [DailyChange(symbol=today.symbol,
+                        date=today.date,
+                        pct_change=pct_change(yesterday, today))
+            for yesterday, today in zip(prices, prices[1:])]
+
+
+all_changes = [change
+               for symbol_prices in prices.values()
+               for change in day_over_day_changes(symbol_prices)]
+
+max_change = max(all_changes, key=lambda change: change.pct_change)
+min_change = min(all_changes, key=lambda change: change.pct_change)
+
+changes_by_month: List[DailyChange] = {month: [] for month in range(1, 13)}
+
+for change in all_changes:
+    changes_by_month[change.date.month].append(change)
+
+avg_daily_change = {
+    month: sum(change.pct_change for change in changes) / len(changes)
+    for month, changes in changes_by_month.items()
+}
+
+from Linear_algebra import distance
+
+a_to_b = distance([63, 150], [67, 160])
+a_to_c = distance([63, 150], [70, 171])
+b_to_c = distance([67, 160], [70, 171])
+
+a_to_b = distance([160, 150], [170.2, 160])
+a_to_c = distance([160, 150], [177.8, 171])
+b_to_c = distance([170.2, 160], [177.8, 171])
+
+from typing import Tuple
+
+from Linear_algebra import vector_mean
+from Statistics import standard_deviation
+
+
+def scale(data: List[Vector]) -> Tuple[Vector, Vector]:
+    dim = len(data[0])
+
+    means = vector_mean(data)
+    stdevs = [standard_deviation([vector[i] for vector in data])
+              for i in range(dim)]
+
+    return means, stdevs
+
+
+vectors = [[-3, -1, 1], [-1, 0, 1], [1, 1, 1]]
+means, stdevs = scale(vectors)
+
+
+def rescale(data: List[Vector]) -> List[Vector]:
+    dim = len(data[0])
+    means, stdevs = scale(data)
+
+    rescaled = [v[:] for v in data]
+
+    for v in rescaled:
+        for i in range(dim):
+            if stdevs[i] > 0:
+                v[i] = (v[i] - means[i]) / stdevs[i]
+
+    return rescaled
+
+
+means, stdevs = scale(rescale(vectors))
+
+import tqdm
+
+pca_data = [
+    [20.9666776351559, -13.1138080189357],
+    [22.7719907680008, -19.8890894944696],
+    [25.6687103160153, -11.9956004517219],
+    [18.0019794950564, -18.1989191165133],
+    [21.3967402102156, -10.8893126308196],
+    [0.443696899177716, -19.7221132386308],
+    [29.9198322142127, -14.0958668502427],
+    [19.0805843080126, -13.7888747608312],
+    [16.4685063521314, -11.2612927034291],
+    [21.4597664701884, -12.4740034586705],
+    [3.87655283720532, -17.575162461771],
+    [34.5713920556787, -10.705185165378],
+    [13.3732115747722, -16.7270274494424],
+    [20.7281704141919, -8.81165591556553],
+    [24.839851437942, -12.1240962157419],
+    [20.3019544741252, -12.8725060780898],
+    [21.9021426929599, -17.3225432396452],
+    [23.2285885715486, -12.2676568419045],
+    [28.5749111681851, -13.2616470619453],
+    [29.2957424128701, -14.6299928678996],
+    [15.2495527798625, -18.4649714274207],
+    [26.5567257400476, -9.19794350561966],
+    [30.1934232346361, -12.6272709845971],
+    [36.8267446011057, -7.25409849336718],
+    [32.157416823084, -10.4729534347553],
+    [5.85964365291694, -22.6573731626132],
+    [25.7426190674693, -14.8055803854566],
+    [16.237602636139, -16.5920595763719],
+    [14.7408608850568, -20.0537715298403],
+    [6.85907008242544, -18.3965586884781],
+    [26.5918329233128, -8.92664811750842],
+    [-11.2216019958228, -27.0519081982856],
+    [8.93593745011035, -20.8261235122575],
+    [24.4481258671796, -18.0324012215159],
+    [2.82048515404903, -22.4208457598703],
+    [30.8803004755948, -11.455358009593],
+    [15.4586738236098, -11.1242825084309],
+    [28.5332537090494, -14.7898744423126],
+    [40.4830293441052, -2.41946428697183],
+    [15.7563759125684, -13.5771266003795],
+    [19.3635588851727, -20.6224770470434],
+    [13.4212840786467, -19.0238227375766],
+    [7.77570680426702, -16.6385739839089],
+    [21.4865983854408, -15.290799330002],
+    [12.6392705930724, -23.6433305964301],
+    [12.4746151388128, -17.9720169566614],
+    [23.4572410437998, -14.602080545086],
+    [13.6878189833565, -18.9687408182414],
+    [15.4077465943441, -14.5352487124086],
+    [20.3356581548895, -10.0883159703702],
+    [20.7093833689359, -12.6939091236766],
+    [11.1032293684441, -14.1383848928755],
+    [17.5048321498308, -9.2338593361801],
+    [16.3303688220188, -15.1054735529158],
+    [26.6929062710726, -13.306030567991],
+    [34.4985678099711, -9.86199941278607],
+    [39.1374291499406, -10.5621430853401],
+    [21.9088956482146, -9.95198845621849],
+    [22.2367457578087, -17.2200123442707],
+    [10.0032784145577, -19.3557700653426],
+    [14.045833906665, -15.871937521131],
+    [15.5640911917607, -18.3396956121887],
+    [24.4771926581586, -14.8715313479137],
+    [26.533415556629, -14.693883922494],
+    [12.8722580202544, -21.2750596021509],
+    [24.4768291376862, -15.9592080959207],
+    [18.2230748567433, -14.6541444069985],
+    [4.1902148367447, -20.6144032528762],
+    [12.4332594022086, -16.6079789231489],
+    [20.5483758651873, -18.8512560786321],
+    [17.8180560451358, -12.5451990696752],
+    [11.0071081078049, -20.3938092335862],
+    [8.30560561422449, -22.9503944138682],
+    [33.9857852657284, -4.8371294974382],
+    [17.4376502239652, -14.5095976075022],
+    [29.0379635148943, -14.8461553663227],
+    [29.1344666599319, -7.70862921632672],
+    [32.9730697624544, -15.5839178785654],
+    [13.4211493998212, -20.150199857584],
+    [11.380538260355, -12.8619410359766],
+    [28.672631499186, -8.51866271785711],
+    [16.4296061111902, -23.3326051279759],
+    [25.7168371582585, -13.8899296143829],
+    [13.3185154732595, -17.8959160024249],
+    [3.60832478605376, -25.4023343597712],
+    [39.5445949652652, -11.466377647931],
+    [25.1693484426101, -12.2752652925707],
+    [25.2884257196471, -7.06710309184533],
+    [6.77665715793125, -22.3947299635571],
+    [20.1844223778907, -16.0427471125407],
+    [25.5506805272535, -9.33856532270204],
+    [25.1495682602477, -7.17350567090738],
+    [15.6978431006492, -17.5979197162642],
+    [37.42780451491, -10.843637288504],
+    [22.974620174842, -10.6171162611686],
+    [34.6327117468934, -9.26182440487384],
+    [34.7042513789061, -6.9630753351114],
+    [15.6563953929008, -17.2196961218915],
+    [25.2049825789225, -14.1592086208169]
+]
+
+
+def de_mean(data: List[Vector]) -> List[Vector]:
+    mean = vector_mean(data)
+    return [subtract(vector, mean) for vector in data]
+
+
+from Linear_algebra import magnitude
+
+
+def direction(w: Vector) -> Vector:
+    mag = magnitude(w)
+    return [w_i / mag for w_i in w]
+
+
+from Linear_algebra import dot
+
+
+def directional_variance(data: List[Vector], w: Vector) -> float:
+    w_dir = direction(w)
+    return sum(dot(v, w_dir) ** 2 for v in data)
+
+
+def directional_variance_gradient(data: List[Vector], w: Vector) -> Vector:
+    w_dir = direction(w)
+    return [sum(2 * dot(v, w_dir) * v[i] for v in data)
+            for i in range(len(w))]
+
+
+from Gradient_descent import gradient_step
+
+
+def first_principal_component(data: List[Vector],
+                              n: int = 100,
+                              step_size: float = 0.1) -> Vector:
+    guess = [1.0 for _ in data[0]]
+
+    with tqdm.trange(n) as t:
+        for _ in t:
+            dv = directional_variance(data, guess)
+            gradient = directional_variance_gradient(data, guess)
+            guess = gradient_step(guess, gradient, step_size)
+            t.set_description(f"dv: {dv:.3f}")
+
+    return direction(guess)
+
+
+from Linear_algebra import scalar_multiply
+
+
+def project(v: Vector, w: Vector) -> Vector:
+    projection_length = dot(v, w)
+    return scalar_multiply(projection_length, w)
+
+
+from Linear_algebra import subtract
+
+
+def remove_projection_from_vector(v: Vector, w: Vector) -> Vector:
+    return subtract(v, project(v, w))
+
+
+def remove_projection(data: List[Vector], w: Vector) -> List[Vector]:
+    return [remove_projection_from_vector(v, w) for v in data]
+
+
+def pca(data: List[Vector], num_components: int) -> List[Vector]:
+    components: List[Vector] = []
+    for _ in range(num_components):
+        component = first_principal_component(data)
+        components.append(component)
+        data = remove_projection(data, component)
+
+    return components
+
+
+def transform_vector(v: Vector, components: List[Vector]) -> Vector:
+    return [dot(v, w) for w in components]
+
+
+def transform(data: List[Vector], components: List[Vector]) -> List[Vector]:
+    return [transform_vector(v, components) for v in data]
+
+
+def main():
+    plt.gca().clear()
+    plt.close()
+
+    import random
+    from Probability import inverse_normal_cdf
+
+    random.seed(0)
+
+    uniform = [200 * random.random() - 100 for _ in range(10000)]
+
+    normal = [57 * inverse_normal_cdf(random.random())
+              for _ in range(10000)]
+
+    plot_histogram(uniform, 10, "Гистограмма нормальных случайных величин")
+
+    plt.savefig('2_Гистограмма_нормальных_случайных_величин.png')
+    plt.gca().clear()
+    plt.close()
+
+    plot_histogram(normal, 10, "Гистограмма равномерных случайных величин")
+
+    plt.savefig('1_Гистограмма_равномерных_случайных_величин.png')
+    plt.gca().clear()
+
+    from Statistics import correlation
+
+    print(correlation(xs, ys1))
+    print(correlation(xs, ys2))
+
+    from typing import List
+
+    num_points = 100
+
+    def random_row() -> List[float]:
+        row = [0.0, 0, 0, 0]
+        row[0] = random_normal()
+        row[1] = -5 * row[0] + random_normal()
+        row[2] = row[0] + row[1] + 5 * random_normal()
+        row[3] = 6 if row[2] > -2 else 0
+        return row
+
+    random.seed(0)
+    corr_rows = [random_row() for _ in range(num_points)]
+
+    corr_data = [list(col) for col in zip(*corr_rows)]
+
+    num_vectors = len(corr_data)
+    fig, ax = plt.subplots(num_vectors, num_vectors)
+
+    for i in range(num_vectors):
+        for j in range(num_vectors):
             if i != j:
-                ax[i][j].scatter(get_column(data, j), get_column(data, i))
+                ax[i][j].scatter(corr_data[j], corr_data[i])
             else:
-                ax[i][j].annotate("серия " + str(i), (0.5, 0.5),
+                ax[i][j].annotate("series " + str(i), (0.5, 0.5),
                                   xycoords='axes fraction',
                                   ha="center", va="center")
-
-            if i < num_columns - 1: ax[i][j].xaxis.set_visible(False)
+            if i < num_vectors - 1: ax[i][j].xaxis.set_visible(False)
             if j > 0: ax[i][j].yaxis.set_visible(False)
 
     ax[-1][-1].set_xlim(ax[0][-1].get_xlim())
     ax[0][0].set_ylim(ax[0][1].get_ylim())
 
-    if filename:
-        plt.savefig(filename)
-        plt.close()
-    else:
-        plt.show()
+    # plt.show()
+
+    plt.savefig('4_Точечная_матрица.png')
+    plt.gca().clear()
+    plt.close()
+    plt.clf()
+
+    import csv
+
+    data: List[StockPrice] = []
+
+    with open("comma_delimited_stock_prices.csv") as f:
+        reader = csv.reader(f)
+        for row in reader:
+            maybe_stock = try_parse_row(row)
+            if maybe_stock is None:
+                print(f"skipping invalid row: {row}")
+            else:
+                data.append(maybe_stock)
+
+    from typing import List
+
+    def primes_up_to(n: int) -> List[int]:
+        primes = [2]
+
+        with tqdm.trange(3, n) as t:
+            for i in t:
+                i_is_prime = not any(i % p == 0 for p in primes)
+                if i_is_prime:
+                    primes.append(i)
+
+                t.set_description(f"{len(primes)} primes")
+
+        return primes
+
+    my_primes = primes_up_to(100_000)
+
+    de_meaned = de_mean(pca_data)
+    fpc = first_principal_component(de_meaned)
+    assert 0.923 < fpc[0] < 0.925
+    assert 0.382 < fpc[1] < 0.384
 
 
-# Примеры использования
-if __name__ == "__main__":
-    random.seed(0)
-
-    # Одномерные данные
-    uniform = [200 * random.random() - 100 for _ in range(10000)]
-    normal = [57 * inverse_normal_cdf(random.random()) for _ in range(10000)]
-
-    print("Среднее uniform:", mean(uniform))
-    print("Стандартное отклонение uniform:", standard_deviation(uniform))
-    print("Среднее normal:", mean(normal))
-    print("Стандартное отклонение normal:", standard_deviation(normal))
-
-    plot_histogram(uniform, 10, "Гистограмма равномерных случайных величин",
-                   "1_Гистограмма_равномерных_случайных_величин.png")
-    plot_histogram(normal, 10, "Гистограмма нормальных случайных величин",
-                   "2_Гистограмма_нормальных_случайных_величин.png")
-
-    # Двумерные данные
-    xs = [inverse_normal_cdf(random.random()) for _ in range(1000)]
-    ys1 = [x + random_normal() / 2 for x in xs]
-    ys2 = [-x + random_normal() / 2 for x in xs]
-
-    print("Корреляция xs и ys1:", correlation(xs, ys1))
-    print("Корреляция xs и ys2:", correlation(xs, ys2))
-
-    scatter_plot(xs, ys1, ys2, "Очень разное совместное распределение", "3_Очень_разное_совместное_распределение.png")
-
-    # Многомерные данные
-    data = [
-        xs,
-        ys1,
-        ys2,
-        [random.choice([0, 6]) for _ in range(1000)]
-    ]
-    data = list(zip(*data))  # Транспонирование матрицы
-
-    print("Точечная матрица:")
-    print(correlation_matrix(data))
-
-    plot_scatter_matrix(data, "4_Точечная матрица.png")
+if __name__ == "__main__": main()
